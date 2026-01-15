@@ -1,5 +1,5 @@
 import { useMembers } from '@/contexts/MemberContext';
-import { SECTIONS } from '@/types/member';
+import { useAppSettings } from '@/contexts/AppSettingsContext';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 
 const COLORS = [
@@ -15,8 +15,10 @@ const COLORS = [
 
 export function SectionStats() {
   const { members } = useMembers();
+  const { getSections } = useAppSettings();
+  const sections = getSections();
 
-  const sectionData = SECTIONS.map((section, index) => ({
+  const sectionData = sections.map((section, index) => ({
     name: section,
     value: members.filter(m => m.section === section).length,
     color: COLORS[index % COLORS.length],

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useMembers } from '@/contexts/MemberContext';
-import { calculateMonthlyTotal, SECTIONS } from '@/types/member';
+import { useAppSettings } from '@/contexts/AppSettingsContext';
+import { calculateMonthlyTotal } from '@/types/member';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -26,6 +27,8 @@ import { fr } from 'date-fns/locale';
 
 export function MemberList() {
   const { members } = useMembers();
+  const { getSections } = useAppSettings();
+  const sections = getSections();
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [sectionFilter, setSectionFilter] = useState<string>('all');
@@ -76,7 +79,7 @@ export function MemberList() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Toutes les sections</SelectItem>
-              {SECTIONS.map((section) => (
+              {sections.map((section) => (
                 <SelectItem key={section} value={section}>
                   {section}
                 </SelectItem>

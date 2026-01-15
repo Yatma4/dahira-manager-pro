@@ -4,6 +4,9 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { MemberProvider } from "@/contexts/MemberContext";
+import { AppSettingsProvider } from "@/contexts/AppSettingsContext";
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import Login from "./pages/Login";
 import Index from "./pages/Index";
 import Members from "./pages/Members";
 import NewMember from "./pages/NewMember";
@@ -18,25 +21,28 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <MemberProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/membres" element={<Members />} />
-            <Route path="/membres/nouveau" element={<NewMember />} />
-            <Route path="/membres/:id" element={<MemberDetail />} />
-            <Route path="/cotisations" element={<Contributions />} />
-            <Route path="/cotisations/:id" element={<MemberContributions />} />
-            <Route path="/rapports" element={<Reports />} />
-            <Route path="/parametres" element={<Settings />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
-    </MemberProvider>
+    <AppSettingsProvider>
+      <MemberProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/login" element={<Login />} />
+              <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+              <Route path="/membres" element={<ProtectedRoute><Members /></ProtectedRoute>} />
+              <Route path="/membres/nouveau" element={<ProtectedRoute><NewMember /></ProtectedRoute>} />
+              <Route path="/membres/:id" element={<ProtectedRoute><MemberDetail /></ProtectedRoute>} />
+              <Route path="/cotisations" element={<ProtectedRoute><Contributions /></ProtectedRoute>} />
+              <Route path="/cotisations/:id" element={<ProtectedRoute><MemberContributions /></ProtectedRoute>} />
+              <Route path="/rapports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
+              <Route path="/parametres" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </MemberProvider>
+    </AppSettingsProvider>
   </QueryClientProvider>
 );
 
