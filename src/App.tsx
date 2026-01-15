@@ -19,31 +19,33 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <AppSettingsProvider>
-      <MemberProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <Routes>
-              <Route path="/login" element={<Login />} />
-              <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-              <Route path="/membres" element={<ProtectedRoute><Members /></ProtectedRoute>} />
-              <Route path="/membres/nouveau" element={<ProtectedRoute><NewMember /></ProtectedRoute>} />
-              <Route path="/membres/:id" element={<ProtectedRoute><MemberDetail /></ProtectedRoute>} />
-              <Route path="/cotisations" element={<ProtectedRoute><Contributions /></ProtectedRoute>} />
-              <Route path="/cotisations/:id" element={<ProtectedRoute><MemberContributions /></ProtectedRoute>} />
-              <Route path="/rapports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
-              <Route path="/parametres" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </TooltipProvider>
-      </MemberProvider>
-    </AppSettingsProvider>
-  </QueryClientProvider>
-);
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AppSettingsProvider>
+        <MemberProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <Routes>
+                <Route path="/login" element={<Login />} />
+                <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+                <Route path="/membres" element={<ProtectedRoute><Members /></ProtectedRoute>} />
+                <Route path="/membres/nouveau" element={<ProtectedRoute><NewMember /></ProtectedRoute>} />
+                <Route path="/membres/:id" element={<ProtectedRoute><MemberDetail /></ProtectedRoute>} />
+                <Route path="/cotisations" element={<ProtectedRoute><Contributions /></ProtectedRoute>} />
+                <Route path="/cotisations/:id" element={<ProtectedRoute><MemberContributions /></ProtectedRoute>} />
+                <Route path="/rapports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
+                <Route path="/parametres" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+          </TooltipProvider>
+        </MemberProvider>
+      </AppSettingsProvider>
+    </QueryClientProvider>
+  );
+}
 
 export default App;
