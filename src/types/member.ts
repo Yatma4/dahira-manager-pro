@@ -96,12 +96,18 @@ export interface MonthlyTotal {
   total: number;
 }
 
+// Arrondir au multiple de 50 le plus proche
+function roundToNearest50(value: number): number {
+  return Math.round(value / 50) * 50;
+}
+
 export function calculateMonthlyTotal(member: Member): MonthlyTotal {
   if (member.statutCotisation === 'non_cotisant') {
     return { sassMensuel: 0, mensuel: 0, sassWerBi: 0, sociale: 0, total: 0 };
   }
 
-  const sassMensuel = Math.round(member.montantSass / 12);
+  const sassMensuelRaw = member.montantSass / 12;
+  const sassMensuel = roundToNearest50(sassMensuelRaw);
   const mensuel = member.genre === 'homme' ? 1000 : 500;
   const sassWerBi = 1000; // Adulte
   const sociale = 500;
@@ -109,17 +115,6 @@ export function calculateMonthlyTotal(member: Member): MonthlyTotal {
 
   return { sassMensuel, mensuel, sassWerBi, sociale, total };
 }
-
-export const SECTIONS = [
-  'Médina',
-  'Plateau',
-  'Grand Dakar',
-  'Parcelles Assainies',
-  'Pikine',
-  'Guédiawaye',
-  'Rufisque',
-  'Keur Massar',
-];
 
 export const MOIS = [
   'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',

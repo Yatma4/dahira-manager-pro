@@ -2,7 +2,8 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useMembers } from '@/contexts/MemberContext';
-import { SECTIONS, Gender, ContributionStatus } from '@/types/member';
+import { useAppSettings } from '@/contexts/AppSettingsContext';
+import { Gender, ContributionStatus } from '@/types/member';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -36,6 +37,8 @@ type MemberFormData = z.infer<typeof memberSchema>;
 
 export function MemberForm() {
   const { addMember } = useMembers();
+  const { getSections } = useAppSettings();
+  const sections = getSections();
   const navigate = useNavigate();
 
   const {
@@ -201,7 +204,7 @@ export function MemberForm() {
                 <SelectValue placeholder="Sélectionner la section" />
               </SelectTrigger>
               <SelectContent>
-                {SECTIONS.map((section) => (
+                {sections.map((section) => (
                   <SelectItem key={section} value={section}>
                     {section}
                   </SelectItem>
