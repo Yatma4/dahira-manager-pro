@@ -548,7 +548,7 @@ export default function Settings() {
                         <SelectValue placeholder="Sélectionner un membre" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Non attribué</SelectItem>
+                        <SelectItem value="none">Non attribué</SelectItem>
                         {members.map((member) => (
                           <SelectItem key={member.id} value={member.id}>
                             {member.prenom} {member.nom}
