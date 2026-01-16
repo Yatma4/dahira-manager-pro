@@ -174,12 +174,13 @@ export default function Settings() {
       addPosteToCommission(selectedCommissionId, {
         titre: newPosteTitre.trim(),
         description: newPosteDescription.trim(),
-        membreId: newPosteMembreId || undefined,
+        membreId: newPosteMembreId && newPosteMembreId !== 'none' ? newPosteMembreId : undefined,
       });
       toast.success(`Poste "${newPosteTitre}" ajouté`);
       setNewPosteTitre('');
       setNewPosteDescription('');
       setNewPosteMembreId('');
+      setSelectedCommissionId(null);
       setPosteDialogOpen(false);
     }
   };

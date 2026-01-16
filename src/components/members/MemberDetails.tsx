@@ -70,7 +70,11 @@ export function MemberDetails() {
           <p className="text-muted-foreground">{member.section}</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" className="gap-2">
+          <Button 
+            variant="outline" 
+            className="gap-2"
+            onClick={() => navigate(`/membres/${member.id}/modifier`)}
+          >
             <Edit className="w-4 h-4" />
             Modifier
           </Button>

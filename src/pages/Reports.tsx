@@ -3,6 +3,13 @@ import { useMembers } from '@/contexts/MemberContext';
 import { Button } from '@/components/ui/button';
 import { FileText, Download, Users, Wallet, Calendar, Building } from 'lucide-react';
 import { toast } from 'sonner';
+import {
+  generateMemberCensusReport,
+  generateAnnualReport,
+  generateSectionReport,
+  generateContributionHistoryReport,
+  generateLatePaymentReport,
+} from '@/utils/pdfGenerator';
 
 export default function Reports() {
   const { members, contributions } = useMembers();
@@ -14,36 +21,59 @@ export default function Reports() {
       description: 'Liste complète de tous les membres sans informations financières',
       icon: Users,
       color: 'bg-primary/10 text-primary',
+      generator: () => {
+        generateMemberCensusReport({ members, contributions, dahiraName: 'Dahira' });
+        toast.success('Rapport téléchargé avec succès');
+      },
     },
     {
       title: 'Rapport Annuel Général',
       description: `Statistiques financières complètes pour l'année ${currentYear}`,
       icon: FileText,
       color: 'bg-accent/10 text-accent',
+      generator: () => {
+        generateAnnualReport({ members, contributions, dahiraName: 'Dahira' }, currentYear);
+        toast.success('Rapport téléchargé avec succès');
+      },
     },
     {
       title: 'Rapport par Section',
       description: 'Répartition des membres et cotisations par section',
       icon: Building,
       color: 'bg-success/10 text-success',
+      generator: () => {
+        generateSectionReport({ members, contributions, dahiraName: 'Dahira' });
+        toast.success('Rapport téléchargé avec succès');
+      },
     },
     {
       title: 'Historique des Cotisations',
       description: 'Détail de tous les paiements reçus',
       icon: Wallet,
       color: 'bg-warning/10 text-warning',
+      generator: () => {
+        generateContributionHistoryReport({ members, contributions, dahiraName: 'Dahira' });
+        toast.success('Rapport téléchargé avec succès');
+      },
     },
     {
       title: 'Membres en Retard',
       description: 'Liste des membres avec des cotisations impayées',
       icon: Calendar,
       color: 'bg-destructive/10 text-destructive',
+      generator: () => {
+        generateLatePaymentReport({ members, contributions, dahiraName: 'Dahira' });
+        toast.success('Rapport téléchargé avec succès');
+      },
     },
   ];
 
-  const handleGenerateReport = (reportTitle: string) => {
-    // Pour l'instant, afficher un message - la génération PDF nécessite un backend
-    toast.info(`La génération du rapport "${reportTitle}" sera disponible prochainement.`);
+  const handleGenerateReport = (report: typeof reports[0]) => {
+    if (members.length === 0) {
+      toast.error('Aucun membre enregistré. Ajoutez des membres pour générer un rapport.');
+      return;
+    }
+    report.generator();
   };
 
   return (
@@ -62,7 +92,7 @@ export default function Reports() {
               <h3 className="font-serif font-bold text-lg mb-1">Centre de Rapports</h3>
               <p className="text-muted-foreground">
                 Générez des rapports PDF détaillés pour le suivi des activités du dahira. 
-                Tous les rapports sont stockés et peuvent être téléchargés ultérieurement.
+                Les rapports sont téléchargés directement sur votre ordinateur.
               </p>
             </div>
           </div>
@@ -105,22 +135,23 @@ export default function Reports() {
               <Button
                 variant="outline"
                 className="w-full gap-2"
-                onClick={() => handleGenerateReport(report.title)}
+                onClick={() => handleGenerateReport(report)}
               >
                 <Download className="w-4 h-4" />
-                Générer PDF
+                Télécharger PDF
               </Button>
             </div>
           ))}
         </div>
 
-        {/* Recent Reports */}
+        {/* Instructions */}
         <div className="card-elevated p-6">
-          <h3 className="font-serif font-bold text-lg mb-4">Rapports Récents</h3>
-          <div className="text-center py-8 text-muted-foreground">
-            <FileText className="w-12 h-12 mx-auto mb-3 opacity-50" />
-            <p>Aucun rapport généré pour le moment</p>
-            <p className="text-sm">Les rapports générés apparaîtront ici</p>
+          <h3 className="font-serif font-bold text-lg mb-4">Instructions</h3>
+          <div className="space-y-2 text-sm text-muted-foreground">
+            <p>• Cliquez sur "Télécharger PDF" pour générer et télécharger un rapport</p>
+            <p>• Les fichiers PDF sont enregistrés dans votre dossier de téléchargements</p>
+            <p>• Les rapports peuvent être ouverts avec n'importe quel lecteur PDF</p>
+            <p>• Chaque rapport inclut la date de génération pour référence</p>
           </div>
         </div>
       </div>
