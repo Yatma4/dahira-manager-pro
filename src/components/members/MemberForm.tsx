@@ -272,7 +272,7 @@ export function MemberForm() {
               <p className="text-sm text-destructive">{errors.montantSass.message}</p>
             )}
             <p className="text-xs text-muted-foreground">
-              Ce montant sera divisé par 12 pour le calcul mensuel
+              Ce montant sera réparti sur les mois restants de l'année en cours
             </p>
           </div>
         </div>
