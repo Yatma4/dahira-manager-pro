@@ -101,12 +101,30 @@ function roundToNearest50(value: number): number {
   return Math.round(value / 50) * 50;
 }
 
+// Calculer le nombre de mois restants dans l'année à partir de la date d'adhésion
+export function getRemainingMonths(dateAdhesion: string): number {
+  const adhesionDate = new Date(dateAdhesion);
+  const currentYear = new Date().getFullYear();
+  const adhesionYear = adhesionDate.getFullYear();
+  
+  // Si adhésion dans l'année courante, calculer les mois restants
+  if (adhesionYear === currentYear) {
+    const adhesionMonth = adhesionDate.getMonth() + 1; // 1-12
+    return 13 - adhesionMonth; // Mois restants incluant le mois d'adhésion
+  }
+  
+  // Si adhésion dans une année précédente, utiliser 12 mois
+  return 12;
+}
+
 export function calculateMonthlyTotal(member: Member): MonthlyTotal {
   if (member.statutCotisation === 'non_cotisant') {
     return { sassMensuel: 0, mensuel: 0, sassWerBi: 0, sociale: 0, total: 0 };
   }
 
-  const sassMensuelRaw = member.montantSass / 12;
+  // Calculer le Sass mensuel sur les mois restants de l'année
+  const remainingMonths = getRemainingMonths(member.dateAdhesion);
+  const sassMensuelRaw = member.montantSass / remainingMonths;
   const sassMensuel = roundToNearest50(sassMensuelRaw);
   const mensuel = member.genre === 'homme' ? 1000 : 500;
   const sassWerBi = 1000; // Adulte

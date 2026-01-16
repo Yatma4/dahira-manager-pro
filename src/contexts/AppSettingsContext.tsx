@@ -6,12 +6,28 @@ interface NotificationSettings {
   evenementsDahira: boolean;
 }
 
+export interface Commission {
+  id: string;
+  nom: string;
+  description: string;
+  postes: Poste[];
+  createdAt: string;
+}
+
+export interface Poste {
+  id: string;
+  titre: string;
+  description: string;
+  membreId?: string; // ID du membre occupant le poste
+}
+
 interface AppSettings {
   accessCode: string;
   securityCode: string;
   sections: string[];
   notifications: NotificationSettings;
   isAuthenticated: boolean;
+  commissions: Commission[];
 }
 
 interface AppSettingsContextType {
@@ -26,6 +42,15 @@ interface AppSettingsContextType {
   removeSection: (section: string) => void;
   updateNotifications: (notifications: Partial<NotificationSettings>) => void;
   getSections: () => string[];
+  addCommission: (commission: Omit<Commission, 'id' | 'createdAt' | 'postes'>) => void;
+  updateCommission: (id: string, commission: Partial<Commission>) => void;
+  deleteCommission: (id: string) => void;
+  addPosteToCommission: (commissionId: string, poste: Omit<Poste, 'id'>) => void;
+  updatePoste: (commissionId: string, posteId: string, poste: Partial<Poste>) => void;
+  deletePoste: (commissionId: string, posteId: string) => void;
+  clearAllData: (securityCode: string) => boolean;
+  archiveYear: (securityCode: string) => { success: boolean; message: string };
+  exportData: () => string;
 }
 
 const DEFAULT_SECTIONS = [
@@ -49,6 +74,7 @@ const DEFAULT_SETTINGS: AppSettings = {
     evenementsDahira: true,
   },
   isAuthenticated: false,
+  commissions: [],
 };
 
 const AppSettingsContext = createContext<AppSettingsContextType | undefined>(undefined);
@@ -58,7 +84,12 @@ export function AppSettingsProvider({ children }: { children: ReactNode }) {
     const saved = localStorage.getItem('dahira_settings');
     if (saved) {
       const parsed = JSON.parse(saved);
-      return { ...parsed, isAuthenticated: false }; // Toujours déconnecté au démarrage
+      return { 
+        ...DEFAULT_SETTINGS,
+        ...parsed, 
+        isAuthenticated: false,
+        commissions: parsed.commissions || [],
+      };
     }
     return DEFAULT_SETTINGS;
   });
@@ -128,6 +159,151 @@ export function AppSettingsProvider({ children }: { children: ReactNode }) {
 
   const getSections = () => settings.sections;
 
+  // Commission management
+  const addCommission = (commission: Omit<Commission, 'id' | 'createdAt' | 'postes'>) => {
+    const newCommission: Commission = {
+      ...commission,
+      id: crypto.randomUUID(),
+      postes: [],
+      createdAt: new Date().toISOString(),
+    };
+    setSettings(prev => ({
+      ...prev,
+      commissions: [...prev.commissions, newCommission],
+    }));
+  };
+
+  const updateCommission = (id: string, commission: Partial<Commission>) => {
+    setSettings(prev => ({
+      ...prev,
+      commissions: prev.commissions.map(c =>
+        c.id === id ? { ...c, ...commission } : c
+      ),
+    }));
+  };
+
+  const deleteCommission = (id: string) => {
+    setSettings(prev => ({
+      ...prev,
+      commissions: prev.commissions.filter(c => c.id !== id),
+    }));
+  };
+
+  const addPosteToCommission = (commissionId: string, poste: Omit<Poste, 'id'>) => {
+    const newPoste: Poste = {
+      ...poste,
+      id: crypto.randomUUID(),
+    };
+    setSettings(prev => ({
+      ...prev,
+      commissions: prev.commissions.map(c =>
+        c.id === commissionId
+          ? { ...c, postes: [...c.postes, newPoste] }
+          : c
+      ),
+    }));
+  };
+
+  const updatePoste = (commissionId: string, posteId: string, poste: Partial<Poste>) => {
+    setSettings(prev => ({
+      ...prev,
+      commissions: prev.commissions.map(c =>
+        c.id === commissionId
+          ? {
+              ...c,
+              postes: c.postes.map(p =>
+                p.id === posteId ? { ...p, ...poste } : p
+              ),
+            }
+          : c
+      ),
+    }));
+  };
+
+  const deletePoste = (commissionId: string, posteId: string) => {
+    setSettings(prev => ({
+      ...prev,
+      commissions: prev.commissions.map(c =>
+        c.id === commissionId
+          ? { ...c, postes: c.postes.filter(p => p.id !== posteId) }
+          : c
+      ),
+    }));
+  };
+
+  // Clear all test data
+  const clearAllData = (securityCode: string): boolean => {
+    if (!verifySecurityCode(securityCode)) {
+      return false;
+    }
+    
+    // Clear members and contributions
+    localStorage.removeItem('dahira_members');
+    localStorage.removeItem('dahira_contributions');
+    
+    // Reset commissions
+    setSettings(prev => ({
+      ...prev,
+      commissions: [],
+    }));
+    
+    // Trigger a page reload to refresh contexts
+    window.location.reload();
+    return true;
+  };
+
+  // Archive year
+  const archiveYear = (securityCode: string): { success: boolean; message: string } => {
+    if (!verifySecurityCode(securityCode)) {
+      return { success: false, message: 'Code de sécurité incorrect' };
+    }
+
+    const currentYear = new Date().getFullYear();
+    
+    // Get current data
+    const members = localStorage.getItem('dahira_members');
+    const contributions = localStorage.getItem('dahira_contributions');
+    
+    // Create archive
+    const archive = {
+      year: currentYear,
+      archivedAt: new Date().toISOString(),
+      members: members ? JSON.parse(members) : [],
+      contributions: contributions ? JSON.parse(contributions) : [],
+    };
+    
+    // Save archive
+    const archives = localStorage.getItem('dahira_archives');
+    const existingArchives = archives ? JSON.parse(archives) : [];
+    existingArchives.push(archive);
+    localStorage.setItem('dahira_archives', JSON.stringify(existingArchives));
+    
+    // Clear only contributions for the new year (keep members)
+    localStorage.setItem('dahira_contributions', JSON.stringify([]));
+    
+    return { success: true, message: `Données de l'année ${currentYear} archivées avec succès` };
+  };
+
+  // Export data
+  const exportData = (): string => {
+    const members = localStorage.getItem('dahira_members');
+    const contributions = localStorage.getItem('dahira_contributions');
+    const archives = localStorage.getItem('dahira_archives');
+    
+    const data = {
+      exportedAt: new Date().toISOString(),
+      members: members ? JSON.parse(members) : [],
+      contributions: contributions ? JSON.parse(contributions) : [],
+      settings: {
+        sections: settings.sections,
+        commissions: settings.commissions,
+      },
+      archives: archives ? JSON.parse(archives) : [],
+    };
+    
+    return JSON.stringify(data, null, 2);
+  };
+
   return (
     <AppSettingsContext.Provider
       value={{
@@ -142,6 +318,15 @@ export function AppSettingsProvider({ children }: { children: ReactNode }) {
         removeSection,
         updateNotifications,
         getSections,
+        addCommission,
+        updateCommission,
+        deleteCommission,
+        addPosteToCommission,
+        updatePoste,
+        deletePoste,
+        clearAllData,
+        archiveYear,
+        exportData,
       }}
     >
       {children}

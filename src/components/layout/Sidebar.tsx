@@ -99,7 +99,7 @@ export function Sidebar() {
       )}>
         {!collapsed && (
           <p className="text-xs text-muted-foreground animate-fade-in">
-            © 2024 Dahira Noukhbaou
+            © {new Date().getFullYear()} Dahira Noukhbaou
           </p>
         )}
       </div>
