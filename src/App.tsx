@@ -11,6 +11,7 @@ import Index from "./pages/Index";
 import Members from "./pages/Members";
 import NewMember from "./pages/NewMember";
 import MemberDetail from "./pages/MemberDetail";
+import EditMember from "./pages/EditMember";
 import Contributions from "./pages/Contributions";
 import MemberContributions from "./pages/MemberContributions";
 import Reports from "./pages/Reports";
@@ -34,6 +35,7 @@ function App() {
                 <Route path="/membres" element={<ProtectedRoute><Members /></ProtectedRoute>} />
                 <Route path="/membres/nouveau" element={<ProtectedRoute><NewMember /></ProtectedRoute>} />
                 <Route path="/membres/:id" element={<ProtectedRoute><MemberDetail /></ProtectedRoute>} />
+                <Route path="/membres/:id/modifier" element={<ProtectedRoute><EditMember /></ProtectedRoute>} />
                 <Route path="/cotisations" element={<ProtectedRoute><Contributions /></ProtectedRoute>} />
                 <Route path="/cotisations/:id" element={<ProtectedRoute><MemberContributions /></ProtectedRoute>} />
                 <Route path="/rapports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
