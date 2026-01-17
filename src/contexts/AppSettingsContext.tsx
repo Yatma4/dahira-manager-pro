@@ -28,6 +28,25 @@ interface AppSettings {
   notifications: NotificationSettings;
   isAuthenticated: boolean;
   commissions: Commission[];
+  dahiraName: string;
+  customContributions: CustomContribution[];
+}
+
+export interface CustomContribution {
+  id: string;
+  label: string;
+  description: string;
+  montant?: number;
+  obligatoire: boolean;
+}
+
+export interface Notification {
+  id: string;
+  title: string;
+  message: string;
+  type: 'info' | 'warning' | 'success' | 'error';
+  read: boolean;
+  createdAt: string;
 }
 
 interface AppSettingsContextType {
@@ -75,6 +94,8 @@ const DEFAULT_SETTINGS: AppSettings = {
   },
   isAuthenticated: false,
   commissions: [],
+  dahiraName: 'Dahira',
+  customContributions: [],
 };
 
 const AppSettingsContext = createContext<AppSettingsContextType | undefined>(undefined);

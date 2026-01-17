@@ -25,6 +25,8 @@ const memberSchema = z.object({
   lieuNaissance: z.string().min(2, 'Le lieu de naissance est requis'),
   adresse: z.string().min(5, 'L\'adresse doit contenir au moins 5 caractères'),
   telephone: z.string().min(9, 'Le numéro de téléphone est invalide'),
+  profession: z.string().min(2, 'La profession est requise'),
+  dahiraName: z.string().min(2, 'Le nom du Dahira est requis'),
   section: z.string().min(1, 'La section est requise'),
   sousSection: z.string().optional(),
   dateAdhesion: z.string().min(1, 'La date d\'adhésion est requise'),
@@ -37,7 +39,7 @@ type MemberFormData = z.infer<typeof memberSchema>;
 
 export function MemberForm() {
   const { addMember } = useMembers();
-  const { getSections } = useAppSettings();
+  const { getSections, settings } = useAppSettings();
   const sections = getSections();
   const navigate = useNavigate();
 
@@ -54,6 +56,8 @@ export function MemberForm() {
       statutCotisation: 'cotisant',
       montantSass: 0,
       sousSection: '',
+      dahiraName: settings.dahiraName || 'Dahira',
+      profession: '',
     },
   });
 
@@ -66,6 +70,8 @@ export function MemberForm() {
         lieuNaissance: data.lieuNaissance,
         adresse: data.adresse,
         telephone: data.telephone,
+        profession: data.profession,
+        dahiraName: data.dahiraName,
         section: data.section,
         sousSection: data.sousSection || '',
         dateAdhesion: data.dateAdhesion,
@@ -162,6 +168,20 @@ export function MemberForm() {
             )}
           </div>
 
+          {/* Profession */}
+          <div className="space-y-2">
+            <Label htmlFor="profession">Profession *</Label>
+            <Input
+              id="profession"
+              {...register('profession')}
+              placeholder="Ex: Enseignant, Commerçant..."
+              className="input-styled"
+            />
+            {errors.profession && (
+              <p className="text-sm text-destructive">{errors.profession.message}</p>
+            )}
+          </div>
+
           {/* Téléphone */}
           <div className="space-y-2">
             <Label htmlFor="telephone">Téléphone *</Label>
@@ -177,7 +197,7 @@ export function MemberForm() {
           </div>
 
           {/* Adresse */}
-          <div className="space-y-2 md:col-span-2">
+          <div className="space-y-2">
             <Label htmlFor="adresse">Adresse Complète *</Label>
             <Input
               id="adresse"
@@ -196,6 +216,20 @@ export function MemberForm() {
         <h3 className="font-serif font-bold text-lg mb-6">Affiliation au Dahira</h3>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Nom du Dahira */}
+          <div className="space-y-2">
+            <Label htmlFor="dahiraName">Nom du Dahira *</Label>
+            <Input
+              id="dahiraName"
+              {...register('dahiraName')}
+              placeholder="Nom du Dahira"
+              className="input-styled"
+            />
+            {errors.dahiraName && (
+              <p className="text-sm text-destructive">{errors.dahiraName.message}</p>
+            )}
+          </div>
+
           {/* Section */}
           <div className="space-y-2">
             <Label>Section *</Label>

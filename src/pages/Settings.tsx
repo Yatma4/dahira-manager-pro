@@ -99,6 +99,7 @@ export default function Settings() {
   const [newPosteTitre, setNewPosteTitre] = useState('');
   const [newPosteDescription, setNewPosteDescription] = useState('');
   const [newPosteMembreId, setNewPosteMembreId] = useState<string>('');
+  const [editingPoste, setEditingPoste] = useState<Poste | null>(null);
 
   // Delete data state
   const [deleteDataCode, setDeleteDataCode] = useState('');
@@ -171,16 +172,26 @@ export default function Settings() {
 
   const handleAddPoste = () => {
     if (selectedCommissionId && newPosteTitre.trim()) {
-      addPosteToCommission(selectedCommissionId, {
-        titre: newPosteTitre.trim(),
-        description: newPosteDescription.trim(),
-        membreId: newPosteMembreId && newPosteMembreId !== 'none' ? newPosteMembreId : undefined,
-      });
-      toast.success(`Poste "${newPosteTitre}" ajouté`);
+      if (editingPoste) {
+        updatePoste(selectedCommissionId, editingPoste.id, {
+          titre: newPosteTitre.trim(),
+          description: newPosteDescription.trim(),
+          membreId: newPosteMembreId && newPosteMembreId !== 'none' ? newPosteMembreId : undefined,
+        });
+        toast.success(`Poste "${newPosteTitre}" modifié`);
+      } else {
+        addPosteToCommission(selectedCommissionId, {
+          titre: newPosteTitre.trim(),
+          description: newPosteDescription.trim(),
+          membreId: newPosteMembreId && newPosteMembreId !== 'none' ? newPosteMembreId : undefined,
+        });
+        toast.success(`Poste "${newPosteTitre}" ajouté`);
+      }
       setNewPosteTitre('');
       setNewPosteDescription('');
       setNewPosteMembreId('');
       setSelectedCommissionId(null);
+      setEditingPoste(null);
       setPosteDialogOpen(false);
     }
   };
@@ -443,16 +454,32 @@ export default function Settings() {
                                 {getMemberName(poste.membreId)}
                               </p>
                             </div>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => {
-                                deletePoste(commission.id, poste.id);
-                                toast.success('Poste supprimé');
-                              }}
-                            >
-                              <X className="w-3 h-3" />
-                            </Button>
+                            <div className="flex gap-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => {
+                                  setSelectedCommissionId(commission.id);
+                                  setEditingPoste(poste);
+                                  setNewPosteTitre(poste.titre);
+                                  setNewPosteDescription(poste.description);
+                                  setNewPosteMembreId(poste.membreId || 'none');
+                                  setPosteDialogOpen(true);
+                                }}
+                              >
+                                <Edit className="w-3 h-3" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => {
+                                  deletePoste(commission.id, poste.id);
+                                  toast.success('Poste supprimé');
+                                }}
+                              >
+                                <X className="w-3 h-3" />
+                              </Button>
+                            </div>
                           </div>
                         ))}
                       </div>
