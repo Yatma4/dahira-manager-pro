@@ -1,6 +1,7 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Member, Contribution, calculateMonthlyTotal } from '@/types/member';
+import { Commission, Poste } from '@/contexts/AppSettingsContext';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
@@ -13,6 +14,11 @@ interface ReportData {
   members: Member[];
   contributions: Contribution[];
   dahiraName?: string;
+}
+
+// Fonction pour formater les montants en entier (45 000 F au lieu de 45/000)
+function formatMontant(montant: number): string {
+  return montant.toLocaleString('fr-FR').replace(/\s/g, ' ') + ' F';
 }
 
 function addHeader(doc: jsPDF, title: string, dahiraName: string = 'Dahira') {
@@ -45,7 +51,7 @@ function addFooter(doc: jsPDF, pageNumber: number) {
 }
 
 export function generateMemberCensusReport(data: ReportData): void {
-  const doc = new jsPDF();
+  const doc = new jsPDF('l'); // Landscape pour plus de colonnes
   const { members, dahiraName } = data;
   
   addHeader(doc, 'Recensement des Membres', dahiraName);
@@ -55,11 +61,14 @@ export function generateMemberCensusReport(data: ReportData): void {
   doc.text(`Nombre total de membres: ${members.length}`, 20, 52);
   doc.text(`Hommes: ${members.filter(m => m.genre === 'homme').length} | Femmes: ${members.filter(m => m.genre === 'femme').length}`, 20, 58);
   
-  // Table
+  // Table avec adresse, date de naissance et profession
   const tableData = members.map((m, index) => [
     (index + 1).toString(),
     `${m.prenom} ${m.nom}`,
     m.genre === 'homme' ? 'H' : 'F',
+    m.dateNaissance ? format(new Date(m.dateNaissance), 'dd/MM/yyyy') : '-',
+    m.adresse || '-',
+    m.profession || '-',
     m.telephone,
     m.section,
     format(new Date(m.dateAdhesion), 'dd/MM/yyyy')
@@ -67,11 +76,22 @@ export function generateMemberCensusReport(data: ReportData): void {
   
   autoTable(doc, {
     startY: 65,
-    head: [['#', 'Nom Complet', 'Genre', 'Téléphone', 'Section', 'Adhésion']],
+    head: [['#', 'Nom Complet', 'Genre', 'Date Naissance', 'Adresse', 'Profession', 'Téléphone', 'Section', 'Adhésion']],
     body: tableData,
-    styles: { fontSize: 9 },
+    styles: { fontSize: 8 },
     headStyles: { fillColor: [41, 128, 185] },
     alternateRowStyles: { fillColor: [245, 245, 245] },
+    columnStyles: {
+      0: { cellWidth: 10 },
+      1: { cellWidth: 35 },
+      2: { cellWidth: 15 },
+      3: { cellWidth: 25 },
+      4: { cellWidth: 45 },
+      5: { cellWidth: 30 },
+      6: { cellWidth: 30 },
+      7: { cellWidth: 30 },
+      8: { cellWidth: 22 }
+    },
     didDrawPage: (data) => {
       addFooter(doc, doc.internal.pages.length - 1);
     }
@@ -98,7 +118,7 @@ export function generateAnnualReport(data: ReportData, year: number): void {
   yPos += 10;
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
-  doc.text(`Total collecté: ${totalCollected.toLocaleString()} FCFA`, 25, yPos);
+  doc.text(`Total collecté: ${formatMontant(totalCollected)}CFA`, 25, yPos);
   yPos += 6;
   doc.text(`Nombre de paiements: ${yearContributions.length}`, 25, yPos);
   yPos += 6;
@@ -112,7 +132,7 @@ export function generateAnnualReport(data: ReportData, year: number): void {
   const monthlyData = MONTHS.map((month, index) => {
     const monthContribs = yearContributions.filter(c => c.mois === index + 1);
     const total = monthContribs.reduce((sum, c) => sum + c.montant, 0);
-    return [month, monthContribs.length.toString(), `${total.toLocaleString()} FCFA`];
+    return [month, monthContribs.length.toString(), `${formatMontant(total)}CFA`];
   });
   
   autoTable(doc, {
@@ -152,7 +172,7 @@ export function generateSectionReport(data: ReportData): void {
       sectionMembers.length.toString(),
       sectionMembers.filter(m => m.genre === 'homme').length.toString(),
       sectionMembers.filter(m => m.genre === 'femme').length.toString(),
-      `${total.toLocaleString()} FCFA`
+      `${formatMontant(total)}CFA`
     ];
   });
   
@@ -190,7 +210,7 @@ export function generateContributionHistoryReport(data: ReportData): void {
       member?.section || '-',
       MONTHS[c.mois - 1],
       c.annee.toString(),
-      `${c.montant.toLocaleString()} FCFA`,
+      `${formatMontant(c.montant)}CFA`,
       format(new Date(c.createdAt), 'dd/MM/yyyy')
     ];
   });
@@ -241,7 +261,7 @@ export function generateLatePaymentReport(data: ReportData): void {
       `${m.prenom} ${m.nom}`,
       m.telephone,
       m.section,
-      `${monthlyTotal.total.toLocaleString()} FCFA`,
+      `${formatMontant(monthlyTotal.total)}CFA`,
       lastPayment 
         ? `${MONTHS[lastPayment.mois - 1]} ${lastPayment.annee}` 
         : 'Aucun'
@@ -258,4 +278,85 @@ export function generateLatePaymentReport(data: ReportData): void {
   });
   
   doc.save(`membres_retard_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+}
+
+// Nouveau rapport des membres des commissions
+export function generateCommissionMembersReport(
+  commissions: Commission[], 
+  members: Member[], 
+  dahiraName: string = 'Dahira'
+): void {
+  const doc = new jsPDF();
+  
+  addHeader(doc, 'Rapport des Commissions', dahiraName);
+  
+  let yPos = 52;
+  
+  // Stats summary
+  doc.setFontSize(11);
+  doc.text(`Nombre de commissions: ${commissions.length}`, 20, yPos);
+  const totalPostes = commissions.reduce((sum, c) => sum + c.postes.length, 0);
+  doc.text(`Nombre total de postes: ${totalPostes}`, 20, yPos + 6);
+  
+  yPos += 20;
+  
+  commissions.forEach((commission, index) => {
+    // Nom de la commission
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`${index + 1}. ${commission.nom}`, 20, yPos);
+    
+    if (commission.description) {
+      yPos += 6;
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      doc.text(commission.description, 25, yPos);
+    }
+    
+    yPos += 8;
+    
+    if (commission.postes.length > 0) {
+      const posteData = commission.postes.map(poste => {
+        const membre = poste.membreId ? members.find(m => m.id === poste.membreId) : null;
+        return [
+          poste.titre,
+          membre ? `${membre.prenom} ${membre.nom}` : 'Non attribué',
+          membre?.telephone || '-',
+          membre?.section || '-'
+        ];
+      });
+      
+      autoTable(doc, {
+        startY: yPos,
+        head: [['Poste', 'Membre', 'Téléphone', 'Section']],
+        body: posteData,
+        styles: { fontSize: 9 },
+        headStyles: { fillColor: [52, 73, 94] },
+        margin: { left: 25 },
+        tableWidth: 160,
+      });
+      
+      yPos = (doc as any).lastAutoTable.finalY + 15;
+    } else {
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'italic');
+      doc.text('Aucun poste défini', 25, yPos);
+      yPos += 15;
+    }
+    
+    // Nouvelle page si nécessaire
+    if (yPos > 250 && index < commissions.length - 1) {
+      doc.addPage();
+      yPos = 20;
+    }
+  });
+  
+  // Ajouter le footer
+  const pageCount = doc.internal.pages.length - 1;
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    addFooter(doc, i);
+  }
+  
+  doc.save(`rapport_commissions_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
 }

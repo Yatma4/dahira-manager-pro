@@ -1,7 +1,8 @@
 import { MainLayout } from '@/components/layout/MainLayout';
 import { useMembers } from '@/contexts/MemberContext';
+import { useAppSettings } from '@/contexts/AppSettingsContext';
 import { Button } from '@/components/ui/button';
-import { FileText, Download, Users, Wallet, Calendar, Building } from 'lucide-react';
+import { FileText, Download, Users, Wallet, Calendar, Building, Briefcase } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   generateMemberCensusReport,
@@ -9,10 +10,12 @@ import {
   generateSectionReport,
   generateContributionHistoryReport,
   generateLatePaymentReport,
+  generateCommissionMembersReport,
 } from '@/utils/pdfGenerator';
 
 export default function Reports() {
   const { members, contributions } = useMembers();
+  const { settings } = useAppSettings();
   const currentYear = new Date().getFullYear();
 
   const reports = [
@@ -62,7 +65,17 @@ export default function Reports() {
       icon: Calendar,
       color: 'bg-destructive/10 text-destructive',
       generator: () => {
-        generateLatePaymentReport({ members, contributions, dahiraName: 'Dahira' });
+        generateLatePaymentReport({ members, contributions, dahiraName: settings.dahiraName || 'Dahira' });
+        toast.success('Rapport téléchargé avec succès');
+      },
+    },
+    {
+      title: 'Membres des Commissions',
+      description: 'Liste des commissions avec leurs membres assignés',
+      icon: Briefcase,
+      color: 'bg-primary/10 text-primary',
+      generator: () => {
+        generateCommissionMembersReport(settings.commissions, members, settings.dahiraName || 'Dahira');
         toast.success('Rapport téléchargé avec succès');
       },
     },

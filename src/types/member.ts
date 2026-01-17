@@ -9,6 +9,8 @@ export interface Member {
   lieuNaissance: string;
   adresse: string;
   telephone: string;
+  profession: string;
+  dahiraName: string;
   section: string;
   sousSection: string;
   dateAdhesion: string;
@@ -17,6 +19,15 @@ export interface Member {
   statutCotisation: ContributionStatus;
   createdAt: string;
   updatedAt: string;
+}
+
+// Type pour les cotisations personnalisées
+export interface CustomContributionType {
+  id: string;
+  label: string;
+  description: string;
+  montant?: number;
+  obligatoire: boolean;
 }
 
 export interface Contribution {
