@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useMembers } from '@/contexts/MemberContext';
-import { calculateMonthlyTotal, MOIS, ContributionType, CONTRIBUTION_CONFIGS } from '@/types/member';
+import { useAppSettings } from '@/contexts/AppSettingsContext';
+import { calculateMonthlyTotal, MOIS, ContributionType, CONTRIBUTION_CONFIGS, getFirstContributionMonth } from '@/types/member';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
 import {
   Select,
   SelectContent,
@@ -16,23 +16,38 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter,
 } from '@/components/ui/dialog';
-import { ArrowLeft, Plus, Check, X, Wallet } from 'lucide-react';
+import { ArrowLeft, Plus, Check, X, Wallet, Settings, Edit, Trash2, Save } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { Switch } from '@/components/ui/switch';
+import { Textarea } from '@/components/ui/textarea';
 
 export function ContributionTracker() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { getMemberById, getContributionsForMember, addContribution } = useMembers();
+  const { settings, addCustomContribution, updateCustomContribution, deleteCustomContribution } = useAppSettings();
+  
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isTypeDialogOpen, setIsTypeDialogOpen] = useState(false);
+  const [editingType, setEditingType] = useState<{ id: string; label: string; description: string; montant?: number; obligatoire: boolean } | null>(null);
+  const [newTypeForm, setNewTypeForm] = useState({
+    label: '',
+    description: '',
+    montant: '',
+    obligatoire: false,
+  });
+  
   const [newContribution, setNewContribution] = useState({
-    type: 'mensuel' as ContributionType,
+    type: 'mensuel' as ContributionType | string,
     montant: 0,
     mois: new Date().getMonth() + 1,
   });
@@ -55,8 +70,30 @@ export function ContributionTracker() {
   const monthlyTotal = calculateMonthlyTotal(member);
   const contributions = getContributionsForMember(member.id);
   const yearContributions = contributions.filter(c => c.annee === selectedYear);
+  
+  // Calcul du premier mois de cotisation (à partir de l'adhésion)
+  const adhesionDate = new Date(member.dateAdhesion);
+  const adhesionYear = adhesionDate.getFullYear();
+  const firstContributionMonth = selectedYear === adhesionYear ? getFirstContributionMonth(member.dateAdhesion) : 1;
+
+  // Tous les types de cotisation (standard + personnalisées)
+  const allContributionTypes = [
+    ...CONTRIBUTION_CONFIGS,
+    ...settings.customContributions.map(c => ({
+      type: c.id as ContributionType,
+      label: c.label,
+      montant: c.montant,
+      obligatoire: c.obligatoire,
+      description: c.description,
+    }))
+  ];
 
   const getMonthStatus = (month: number) => {
+    // Si le mois est avant l'adhésion, pas de cotisation requise
+    if (selectedYear === adhesionYear && month < firstContributionMonth) {
+      return 'not_required';
+    }
+    
     const monthContribs = yearContributions.filter(c => c.mois === month);
     const totalPaid = monthContribs.reduce((sum, c) => sum + c.montant, 0);
     
@@ -73,7 +110,7 @@ export function ContributionTracker() {
 
     addContribution({
       membreId: member.id,
-      type: newContribution.type,
+      type: newContribution.type as ContributionType,
       montant: newContribution.montant,
       mois: newContribution.mois,
       annee: selectedYear,
@@ -89,6 +126,59 @@ export function ContributionTracker() {
     });
   };
 
+  const handleSaveContributionType = () => {
+    if (!newTypeForm.label.trim()) {
+      toast.error('Le libellé est requis');
+      return;
+    }
+
+    const contribData = {
+      label: newTypeForm.label.trim(),
+      description: newTypeForm.description.trim(),
+      montant: newTypeForm.montant ? parseInt(newTypeForm.montant) : undefined,
+      obligatoire: newTypeForm.obligatoire,
+    };
+
+    if (editingType) {
+      updateCustomContribution(editingType.id, contribData);
+      toast.success(`Type "${newTypeForm.label}" modifié`);
+    } else {
+      addCustomContribution(contribData);
+      toast.success(`Type "${newTypeForm.label}" ajouté`);
+    }
+
+    resetTypeForm();
+    setIsTypeDialogOpen(false);
+  };
+
+  const handleEditType = (contrib: { id: string; label: string; description: string; montant?: number; obligatoire: boolean }) => {
+    setEditingType(contrib);
+    setNewTypeForm({
+      label: contrib.label,
+      description: contrib.description,
+      montant: contrib.montant?.toString() || '',
+      obligatoire: contrib.obligatoire,
+    });
+    setIsTypeDialogOpen(true);
+  };
+
+  const handleDeleteType = (id: string, label: string) => {
+    deleteCustomContribution(id);
+    toast.success(`Type "${label}" supprimé`);
+  };
+
+  const resetTypeForm = () => {
+    setNewTypeForm({ label: '', description: '', montant: '', obligatoire: false });
+    setEditingType(null);
+  };
+
+  // Mois disponibles pour l'enregistrement (à partir de l'adhésion)
+  const availableMonths = MOIS.map((mois, index) => ({
+    name: mois,
+    number: index + 1,
+    disabled: selectedYear === adhesionYear && index + 1 < firstContributionMonth,
+  }));
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -102,6 +192,9 @@ export function ContributionTracker() {
           </h2>
           <p className="text-muted-foreground">
             Cotisation mensuelle: {monthlyTotal.total.toLocaleString()} FCFA
+            {selectedYear === adhesionYear && (
+              <span className="ml-2 text-xs">(à partir de {MOIS[firstContributionMonth - 1]})</span>
+            )}
           </p>
         </div>
         <Select
@@ -126,22 +219,39 @@ export function ContributionTracker() {
               Nouvelle Cotisation
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-w-lg">
             <DialogHeader>
               <DialogTitle>Enregistrer une Cotisation</DialogTitle>
+              <DialogDescription>
+                Enregistrez une cotisation pour {member.prenom} {member.nom}
+              </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label>Type de cotisation</Label>
+                <div className="flex items-center justify-between">
+                  <Label>Type de cotisation</Label>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="gap-1 text-xs h-7"
+                    onClick={() => {
+                      resetTypeForm();
+                      setIsTypeDialogOpen(true);
+                    }}
+                  >
+                    <Settings className="w-3 h-3" />
+                    Gérer les types
+                  </Button>
+                </div>
                 <Select
                   value={newContribution.type}
-                  onValueChange={(v) => setNewContribution(prev => ({ ...prev, type: v as ContributionType }))}
+                  onValueChange={(v) => setNewContribution(prev => ({ ...prev, type: v }))}
                 >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {CONTRIBUTION_CONFIGS.map((config) => (
+                    {allContributionTypes.map((config) => (
                       <SelectItem key={config.type} value={config.type}>
                         {config.label} {config.obligatoire ? '' : '(Volontaire)'}
                       </SelectItem>
@@ -159,9 +269,13 @@ export function ContributionTracker() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {MOIS.map((mois, index) => (
-                      <SelectItem key={mois} value={(index + 1).toString()}>
-                        {mois}
+                    {availableMonths.map((m) => (
+                      <SelectItem 
+                        key={m.name} 
+                        value={m.number.toString()}
+                        disabled={m.disabled}
+                      >
+                        {m.name} {m.disabled && '(Avant adhésion)'}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -195,6 +309,24 @@ export function ContributionTracker() {
             const status = getMonthStatus(index + 1);
             const monthContribs = yearContributions.filter(c => c.mois === index + 1);
             const totalPaid = monthContribs.reduce((sum, c) => sum + c.montant, 0);
+
+            // Mois avant l'adhésion - affichage spécial
+            if (status === 'not_required') {
+              return (
+                <div
+                  key={mois}
+                  className="p-4 rounded-lg border-2 border-dashed border-muted bg-muted/10 opacity-50"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-medium text-muted-foreground">{mois}</span>
+                    <span className="text-xs text-muted-foreground">N/A</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Avant adhésion
+                  </p>
+                </div>
+              );
+            }
 
             return (
               <div
@@ -243,7 +375,7 @@ export function ContributionTracker() {
             {yearContributions
               .sort((a, b) => new Date(b.datePaiement).getTime() - new Date(a.datePaiement).getTime())
               .map((contribution) => {
-                const config = CONTRIBUTION_CONFIGS.find(c => c.type === contribution.type);
+                const config = allContributionTypes.find(c => c.type === contribution.type);
                 return (
                   <div
                     key={contribution.id}
@@ -274,6 +406,115 @@ export function ContributionTracker() {
           </div>
         )}
       </div>
+
+      {/* Dialog pour gérer les types de cotisation */}
+      <Dialog open={isTypeDialogOpen} onOpenChange={(open) => {
+        setIsTypeDialogOpen(open);
+        if (!open) resetTypeForm();
+      }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {editingType ? 'Modifier le type' : 'Ajouter un type de cotisation'}
+            </DialogTitle>
+            <DialogDescription>
+              {editingType 
+                ? 'Modifiez les informations de ce type de cotisation.'
+                : 'Créez un nouveau type de cotisation personnalisée.'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            <div>
+              <Label htmlFor="typeLabel">Libellé *</Label>
+              <Input
+                id="typeLabel"
+                value={newTypeForm.label}
+                onChange={(e) => setNewTypeForm(prev => ({ ...prev, label: e.target.value }))}
+                placeholder="Ex: Cotisation Magal"
+                className="mt-2"
+              />
+            </div>
+            <div>
+              <Label htmlFor="typeDescription">Description</Label>
+              <Textarea
+                id="typeDescription"
+                value={newTypeForm.description}
+                onChange={(e) => setNewTypeForm(prev => ({ ...prev, description: e.target.value }))}
+                placeholder="Description de la cotisation"
+                className="mt-2"
+              />
+            </div>
+            <div>
+              <Label htmlFor="typeMontant">Montant (FCFA)</Label>
+              <Input
+                id="typeMontant"
+                type="number"
+                value={newTypeForm.montant}
+                onChange={(e) => setNewTypeForm(prev => ({ ...prev, montant: e.target.value }))}
+                placeholder="Laisser vide pour montant libre"
+                className="mt-2"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Laissez vide si le montant est libre
+              </p>
+            </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <Label>Cotisation obligatoire</Label>
+                <p className="text-xs text-muted-foreground">
+                  Requise pour tous les membres
+                </p>
+              </div>
+              <Switch
+                checked={newTypeForm.obligatoire}
+                onCheckedChange={(checked) => setNewTypeForm(prev => ({ ...prev, obligatoire: checked }))}
+              />
+            </div>
+
+            {/* Liste des types personnalisés existants */}
+            {settings.customContributions.length > 0 && !editingType && (
+              <div className="border-t pt-4 mt-4">
+                <Label className="text-sm text-muted-foreground">Types personnalisés existants</Label>
+                <div className="space-y-2 mt-2">
+                  {settings.customContributions.map((contrib) => (
+                    <div key={contrib.id} className="flex items-center justify-between p-2 bg-muted/30 rounded">
+                      <span className="text-sm">{contrib.label}</span>
+                      <div className="flex gap-1">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-7 w-7"
+                          onClick={() => handleEditType(contrib)}
+                        >
+                          <Edit className="w-3 h-3" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-7 w-7"
+                          onClick={() => handleDeleteType(contrib.id, contrib.label)}
+                        >
+                          <Trash2 className="w-3 h-3 text-destructive" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsTypeDialogOpen(false)}>
+              <X className="w-4 h-4 mr-2" />
+              Annuler
+            </Button>
+            <Button onClick={handleSaveContributionType}>
+              <Save className="w-4 h-4 mr-2" />
+              {editingType ? 'Modifier' : 'Ajouter'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
