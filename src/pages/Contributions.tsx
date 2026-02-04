@@ -86,7 +86,7 @@ export default function Contributions() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Collecté</p>
-                <p className="text-xl font-bold">{(totalCollected / 1000).toFixed(0)}K FCFA</p>
+                <p className="text-xl font-bold">{totalCollected.toLocaleString('fr-FR')} F</p>
               </div>
             </div>
           </div>
@@ -97,7 +97,7 @@ export default function Contributions() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Objectif</p>
-                <p className="text-xl font-bold">{(totalExpected / 1000).toFixed(0)}K FCFA</p>
+                <p className="text-xl font-bold">{totalExpected.toLocaleString('fr-FR')} F</p>
               </div>
             </div>
           </div>
