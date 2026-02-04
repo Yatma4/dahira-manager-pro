@@ -107,11 +107,6 @@ export interface MonthlyTotal {
   total: number;
 }
 
-// Arrondir au multiple de 50 le plus proche
-function roundToNearest50(value: number): number {
-  return Math.round(value / 50) * 50;
-}
-
 // Calculer le nombre de mois restants dans l'année à partir de la date d'adhésion
 export function getRemainingMonths(dateAdhesion: string): number {
   const adhesionDate = new Date(dateAdhesion);
@@ -128,15 +123,21 @@ export function getRemainingMonths(dateAdhesion: string): number {
   return 12;
 }
 
+// Calculer le premier mois de cotisation pour un membre
+export function getFirstContributionMonth(dateAdhesion: string): number {
+  const adhesionDate = new Date(dateAdhesion);
+  return adhesionDate.getMonth() + 1; // 1-12
+}
+
 export function calculateMonthlyTotal(member: Member): MonthlyTotal {
   if (member.statutCotisation === 'non_cotisant') {
     return { sassMensuel: 0, mensuel: 0, sassWerBi: 0, sociale: 0, total: 0 };
   }
 
-  // Calculer le Sass mensuel sur les mois restants de l'année
+  // Calculer le Sass mensuel sur les mois restants de l'année (sans arrondi)
   const remainingMonths = getRemainingMonths(member.dateAdhesion);
-  const sassMensuelRaw = member.montantSass / remainingMonths;
-  const sassMensuel = roundToNearest50(sassMensuelRaw);
+  // Calculer le montant exact sans arrondir
+  const sassMensuel = Math.ceil(member.montantSass / remainingMonths);
   const mensuel = member.genre === 'homme' ? 1000 : 500;
   const sassWerBi = 1000; // Adulte
   const sociale = 500;

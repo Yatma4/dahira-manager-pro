@@ -70,6 +70,9 @@ interface AppSettingsContextType {
   clearAllData: (securityCode: string) => boolean;
   archiveYear: (securityCode: string) => { success: boolean; message: string };
   exportData: () => string;
+  addCustomContribution: (contribution: Omit<CustomContribution, 'id'>) => void;
+  updateCustomContribution: (id: string, contribution: Partial<CustomContribution>) => void;
+  deleteCustomContribution: (id: string) => void;
 }
 
 const DEFAULT_SECTIONS = [
@@ -318,11 +321,40 @@ export function AppSettingsProvider({ children }: { children: ReactNode }) {
       settings: {
         sections: settings.sections,
         commissions: settings.commissions,
+        customContributions: settings.customContributions,
       },
       archives: archives ? JSON.parse(archives) : [],
     };
     
     return JSON.stringify(data, null, 2);
+  };
+
+  // Custom Contribution management
+  const addCustomContribution = (contribution: Omit<CustomContribution, 'id'>) => {
+    const newContribution: CustomContribution = {
+      ...contribution,
+      id: crypto.randomUUID(),
+    };
+    setSettings(prev => ({
+      ...prev,
+      customContributions: [...prev.customContributions, newContribution],
+    }));
+  };
+
+  const updateCustomContribution = (id: string, contribution: Partial<CustomContribution>) => {
+    setSettings(prev => ({
+      ...prev,
+      customContributions: prev.customContributions.map(c =>
+        c.id === id ? { ...c, ...contribution } : c
+      ),
+    }));
+  };
+
+  const deleteCustomContribution = (id: string) => {
+    setSettings(prev => ({
+      ...prev,
+      customContributions: prev.customContributions.filter(c => c.id !== id),
+    }));
   };
 
   return (
@@ -348,6 +380,9 @@ export function AppSettingsProvider({ children }: { children: ReactNode }) {
         clearAllData,
         archiveYear,
         exportData,
+        addCustomContribution,
+        updateCustomContribution,
+        deleteCustomContribution,
       }}
     >
       {children}

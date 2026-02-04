@@ -7,6 +7,7 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { useAppSettings, Commission, Poste } from '@/contexts/AppSettingsContext';
 import { useMembers } from '@/contexts/MemberContext';
+import { CustomContributionsManager } from '@/components/settings/CustomContributionsManager';
 import { 
   Shield, 
   Bell, 
@@ -598,6 +599,10 @@ export default function Settings() {
             </Dialog>
           </div>
         </div>
+
+
+        {/* Custom Contributions Management */}
+        <CustomContributionsManager />
 
         {/* Notifications */}
         <div className="card-elevated p-6">
